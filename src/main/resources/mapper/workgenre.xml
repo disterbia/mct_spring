@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.WorkGenreRepository">
+
+    <insert id="saveWorkGenre" parameterType="com.music961.pinto.model.work.Genre">
+        INSERT IGNORE INTO F_WORK_GENRE
+        VALUES (#{workId}, #{genreId});
+    </insert>
+
+    <delete id="deleteWorkGenreByWorkId">
+        DELETE FROM F_WORK_GENRE WHERE WORK_ID=#{workId}
+    </delete>
+
+</mapper>

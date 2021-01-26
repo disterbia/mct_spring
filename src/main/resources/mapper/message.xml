@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.MessageRepository">
+    <select id="list" resultType="com.music961.pinto.model.Message">
+        SELECT ID            AS id
+             , TO_USR_ID     AS toUsrId
+             , FROM_USR_ID   AS fromUsrId
+             , MESSAGE_VALUE AS messageValue
+             , is_Checked    AS checked
+             , SEND_DATE     AS sendDate
+          FROM USR_MESSAGE
+         WHERE TO_USR_ID = #{usrId}
+         ORDER BY IS_CHECKED DESC , SEND_DATE DESC
+    </select>
+
+    <update id="read">
+        UPDATE USR_MESSAGE
+           SET IS_CHECKED = 1
+         WHERE ID  = #{messageId}
+    </update>
+
+    <insert id="send">
+        INSERT INTO USR_MESSAGE(
+              TO_USR_ID
+            , FROM_USR_ID
+            , MESSAGE_VALUE
+        )VALUES(
+            #{target}
+          , #{usrId}
+          , #{text}
+        )
+    </insert>
+</mapper>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.TagRepository">
+
+    <select id="getAllTagByRes" resultType="com.music961.pinto.model.Tag">
+        SELECT B.TAG_KEY AS tagKey
+             , B.TAG_VALUE AS tagValue
+             , B.TAG_TIME AS tagTime
+          FROM F_RES_TAG A
+          JOIN PINTO_TAG B
+            ON A.TAG_KEY = B.TAG_KEY
+         WHERE A.RES_KEY=#{res}
+    </select>
+
+    <select id="getTagByTagName" resultType="com.music961.pinto.model.Tag">
+        SELECT TAG_KEY AS tagKey
+             , TAG_VALUE AS tagValue
+             , TAG_TIME AS tagTime
+          FROM PINTO_TAG
+         WHERE TAG_VALUE=#{tag}
+    </select>
+
+    <select id="autoCompleteTag" resultType="String">
+        SELECT T1.TAG_VALUE AS tagValue
+          FROM PINTO_TAG T1
+         WHERE T1.TAG_VALUE LIKE CONCAT(#{tagValue},'%')
+         ORDER BY TAG_VALUE ASC LIMIT 10
+    </select>
+
+    <insert id="insertTag" parameterType="com.music961.pinto.model.Tag" useGeneratedKeys="true" keyProperty="tagKey">
+        INSERT INTO PINTO_TAG(
+               TAG_VALUE
+        ) VALUES(
+               #{tagValue}
+        )
+    </insert>
+
+
+    <delete id="removeAllResTagByRes">
+        DELETE
+          FROM F_RES_TAG
+         WHERE RES_KEY=#{res}
+    </delete>
+
+    <delete id="removeResTag">
+        DELETE
+          FROM F_RES_TAG
+         WHERE RES_KEY=#{res}
+           AND TAG_KEY=#{tag}
+    </delete>
+
+
+    <insert id="insertResTag">
+        INSERT INTO F_RES_TAG(
+               RES_KEY
+             , TAG_KEY
+        ) VALUES(
+               #{res}
+             , #{tag}
+        )
+    </insert>
+
+</mapper>

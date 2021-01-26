@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.GenreRepository">
+
+    <select id="autoCompleteGenre" resultType="String">
+        SELECT T1.GENRE_VALUE
+          FROM PINTO_GENRE T1
+         WHERE T1.GENRE_VALUE LIKE CONCAT(#{genreValue},'%')
+         ORDER BY GENRE_VALUE ASC LIMIT 10
+    </select>
+
+    <select id="getGenre" resultType="com.music961.pinto.model.work.Genre">
+        SELECT T1.WORK_ID      AS  workId
+             , T1.GENRE_ID     AS  genreId
+             , T2.GENRE_VALUE  AS  genreValue
+          FROM (SELECT TT1.* FROM F_WORK_GENRE TT1 WHERE TT1.WORK_ID = #{workId}) T1
+          JOIN PINTO_GENRE T2
+            ON T1.GENRE_ID = T2.ID
+         ORDER BY workId , genreId
+    </select>
+
+    <insert id="saveGenre" parameterType="com.music961.pinto.model.work.Genre" useGeneratedKeys="true" keyProperty="genreId">
+
+        <selectKey keyProperty="genreId" resultType="long" order="BEFORE">
+            SELECT IF(
+                          (SELECT T1.ID FROM PINTO_GENRE T1 WHERE GENRE_VALUE=#{genreValue}) > 0
+                        , (SELECT T2.ID FROM PINTO_GENRE T2 WHERE GENRE_VALUE=#{genreValue})
+                        , (SELECT MAX(T3.ID) FROM PINTO_GENRE T3) + 1
+                    )
+              FROM DUAL
+        </selectKey>
+
+        INSERT INTO PINTO_GENRE(
+               ID
+             , GENRE_VALUE
+        ) VALUES(
+               IF(1>#{genreId}, IFNULL((SELECT MAX(TEM.ID) FROM PINTO_GENRE TEM),0) + 1,#{genreId})
+             , #{genreValue}
+        )ON DUPLICATE KEY UPDATE GENRE_VALUE=#{genreValue};
+
+    </insert>
+</mapper>

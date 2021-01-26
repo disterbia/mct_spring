@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.CastRepository">
+    <select id="getCastList" resultType="com.music961.pinto.model.work.Cast">
+        SELECT T1.WORK_ID AS workId
+             , T1.VAR_ID  AS varId
+             , T1.CAST_ID AS castId
+             , T1.RES_NO  AS resNo
+             , T1.NAME    AS name
+             , T1.ZOOM    AS zoom
+             , T1.BIASX   AS biasX
+             , T1.BIASY   AS biasY
+          FROM PINTO_CAST T1
+         WHERE T1.WORK_ID = #{workId}
+    </select>
+
+    <select id="getCastListAll" resultType="com.music961.pinto.model.work.Cast">
+        SELECT T1.WORK_ID AS workId
+             , T1.VAR_ID  AS varId
+             , T1.CAST_ID AS castId
+             , T1.RES_NO  AS resNo
+             , T1.NAME    AS name
+             , T1.ZOOM    AS zoom
+             , T1.BIASX   AS biasX
+             , T1.BIASY   AS biasY
+          FROM PINTO_CAST T1
+         WHERE T1.WORK_ID IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <insert id="createCast" parameterType="com.music961.pinto.model.work.Cast">
+        <selectKey keyProperty="castId" resultType="Int" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.CAST_ID) FROM PINTO_CAST T2 WHERE T2.WORK_ID=#{workId}) ,0)+1
+            FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_CAST(
+              WORK_ID
+            , CAST_ID
+            , VAR_ID
+            , RES_NO
+            , ZOOM
+            , BIASX
+            , BIASY
+        )VALUES(
+            IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+            , #{castId}
+            , #{varId}
+            , #{resNo}
+            , #{zoom}
+            , #{biasX}
+            , #{biasY}
+        );
+    </insert>
+
+    <update id="updateCast" parameterType="com.music961.pinto.model.work.Cast">
+        UPDATE PINTO_CAST
+           SET VAR_ID  = #{varId}
+             , CAST_ID = #{castId}
+             , RES_NO  = #{resNo}
+             , NAME    = #{name}
+             , ZOOM    = #{zoom}
+             , BIASX   = #{biasX}
+             , BIASY   = #{biasY}
+         WHERE WORK_ID = #{workId}
+           AND CAST_ID  = #{castId}
+    </update>
+
+    <delete id="deleteCast">
+        DELETE FROM PINTO_CAST
+        WHERE WORK_ID    =   (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY = #{usrId})
+          AND CAST_ID    =   #{castId}
+    </delete>
+</mapper>

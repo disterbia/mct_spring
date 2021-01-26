@@ -1,0 +1,176 @@
+<!--<?xml version="1.0" encoding="UTF-8"?>-->
+<!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">-->
+<!--<mapper namespace="com.music961.pinto.repository.WorkRepository">-->
+
+<!--    <insert id="saveWork" parameterType="com.music961.pinto.model.work.Work">-->
+<!--        <selectKey keyProperty="id" resultType="long" order="BEFORE">-->
+<!--            SELECT IF(1>#{id}, IFNULL((SELECT MAX(TEM.ID) FROM PINTO_WORK TEM),0) + 1,#{id})-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+<!--        INSERT INTO pinto_work (-->
+<!--              id-->
+<!--            , title-->
+<!--            , lastedit-->
+<!--            , face-->
+<!--            , usr_key-->
+<!--        ) VALUES (-->
+<!--              IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{ID}),IFNULL((SELECT MAX(T2.ID) FROM PINTO_WORK T2),0)+1)-->
+<!--            , #{title}-->
+<!--            , #{lastedit}-->
+<!--            , #{face}-->
+<!--            , #{usrKey}-->
+<!--        )ON DUPLICATE KEY UPDATE title=#{title}, lastedit=#{lastedit}, face=#{face}, usr_key = #{usrKey};-->
+<!--    </insert>-->
+
+<!--    <insert id="saveVar" parameterType="com.music961.pinto.model.work.Var">-->
+
+<!--        <selectKey keyProperty="varId" resultType="long" order="BEFORE">-->
+<!--            SELECT IF(#{varId}>0,#{varId},IFNULL((SELECT MAX(TEM.VAR_ID) FROM PINTO_VAR TEM WHERE WORK_ID=${workId}), 0) + 1)-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+
+<!--        INSERT INTO pinto_var (-->
+<!--               work_id-->
+<!--             , var_id-->
+<!--             , var_type-->
+<!--             , var_value-->
+<!--        ) VALUES (-->
+<!--               #{workId}-->
+<!--             , IF(#{varId}>0,#{varId},IFNULL((SELECT MAX(TEM.VAR_ID) FROM PINTO_VAR TEM WHERE WORK_ID=${workId}), 0) + 1)-->
+<!--             , #{varType}-->
+<!--             , #{varValue}-->
+<!--        )ON DUPLICATE KEY UPDATE var_type=#{varType}, var_value = #{varValue};-->
+<!--    </insert>-->
+
+<!--    <insert id="saveGenre" parameterType="com.music961.pinto.model.work.Genre" useGeneratedKeys="true" keyProperty="genreId">-->
+
+<!--        <selectKey keyProperty="genreId" resultType="long" order="BEFORE">-->
+<!--            SELECT IF(-->
+<!--                          (SELECT T1.ID FROM PINTO_GENRE T1 WHERE GENRE_VALUE=#{genreValue}) > 0-->
+<!--                        , (SELECT T2.ID FROM PINTO_GENRE T2 WHERE GENRE_VALUE=#{genreValue})-->
+<!--                        , (SELECT MAX(T3.ID) FROM PINTO_GENRE T3) + 1-->
+<!--                    )-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+
+<!--        INSERT INTO PINTO_GENRE(-->
+<!--               ID-->
+<!--             , GENRE_VALUE-->
+<!--        ) VALUES(-->
+<!--               IF(1>#{genreId}, IFNULL((SELECT MAX(TEM.ID) FROM PINTO_GENRE TEM),0) + 1,#{genreId})-->
+<!--             , #{genreValue}-->
+<!--        )ON DUPLICATE KEY UPDATE GENRE_VALUE=#{genreValue};-->
+
+<!--    </insert>-->
+
+<!--    <insert id="saveWorkGenre" parameterType="com.music961.pinto.model.work.Genre">-->
+<!--        INSERT IGNORE INTO F_WORK_GENRE-->
+<!--        VALUES (#{workId}, #{genreId});-->
+<!--    </insert>-->
+
+<!--    <delete id="deleteVarByWorkId">-->
+<!--        DELETE FROM PINTO_VAR WHERE WORK_ID=#{workId}-->
+<!--    </delete>-->
+
+<!--    <delete id="deleteWorkGenreByWorkId">-->
+<!--        DELETE FROM F_WORK_GENRE WHERE WORK_ID=#{workId}-->
+<!--    </delete>-->
+
+<!--    <delete id="deleteWorkCascade">-->
+<!--        DELETE-->
+<!--          FROM PINTO_WORK-->
+<!--         WHERE ID        =   #{workId}-->
+<!--           AND USR_KEY   =   #{usrId}-->
+<!--    </delete>-->
+
+<!--    &lt;!&ndash; ================================== 이까지 Work, Genre, Var ================================== &ndash;&gt;-->
+
+<!--    <insert id="saveEpi" parameterType="com.music961.pinto.model.work.Epi">-->
+<!--        <selectKey keyProperty="epiId" resultType="long" order="BEFORE">-->
+<!--            SELECT IF(1>#{epiId},IFNULL((SELECT MAX(T2.EPI_ID) FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId}),0)+1,#{epiId})-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+<!--        INSERT INTO PINTO_EPI(-->
+<!--               WORK_ID-->
+<!--             , EPI_ID-->
+<!--             , TITLE-->
+<!--             , FACE-->
+<!--             , RELEASE_YN-->
+<!--        )VALUES(-->
+<!--               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')-->
+<!--             , IFNULL((SELECT T1.EPI_ID FROM PINTO_EPI T1 WHERE T1.WORK_ID=#{workId} AND T1.EPI_ID=#{epiId}),IFNULL((SELECT MAX(T2.EPI_ID) FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId}),0)+1)-->
+<!--             , #{title}-->
+<!--             , #{face}-->
+<!--             , 1-->
+<!--             )ON DUPLICATE KEY UPDATE title=#{title}, face=#{face}, release_yn = #{releaseYn};-->
+<!--    </insert>-->
+
+<!--    <insert id="saveScene" parameterType="com.music961.pinto.model.work.Scene">-->
+
+<!--        <selectKey keyProperty="sceneId,bfScene,bfPage" resultType="hashmap" order="BEFORE">-->
+<!--            SELECT IFNULL((SELECT T3.SCENE_ID FROM PINTO_SCENE T3 WHERE T3.WORK_ID=#{workId} AND T3.EPI_ID=#{epiId} AND T3.SCENE_ID=#{sceneId}),IFNULL((SELECT MAX(T4.SCENE_ID) FROM PINTO_SCENE T4 WHERE T4.WORK_ID=#{workId} AND T4.EPI_ID=#{epiId}),0)+1) AS sceneId-->
+<!--                 , IFNULL((SELECT T5.SCENE_ID FROM PINTO_SCENE T5 WHERE T5.WORK_ID=#{workId} AND T5.EPI_ID=#{epiId} AND T5.SCENE_ID=#{bfScene}),0) AS bfScene-->
+<!--                 , IFNULL((SELECT T6.PAGE_ID FROM PINTO_PAGE T6 WHERE T6.WORK_ID=#{workId} AND T6.EPI_ID=#{epiId} AND T6.SCENE_ID=#{sceneId} AND T6.PAGE_ID=#{bfPage}),0) AS bfPage-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+
+<!--        INSERT INTO PINTO_SCENE(-->
+<!--               WORK_ID-->
+<!--             , EPI_ID-->
+<!--             , SCENE_ID-->
+<!--             , NAME-->
+<!--             , LASTEDIT-->
+<!--             , BF_SCENE-->
+<!--             , BF_PAGE-->
+<!--             , NOTE-->
+<!--        )VALUES(-->
+<!--               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')-->
+<!--             , IFNULL((SELECT T2.EPI_ID FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId}),'NOTALLOW')-->
+<!--             , IFNULL((SELECT T3.EPI_ID FROM PINTO_SCENE T3 WHERE T3.WORK_ID=#{workId} AND T3.EPI_ID=#{epiId} AND T3.SCENE_ID=#{sceneId}),IFNULL((SELECT MAX(T4.SCENE_ID) FROM PINTO_SCENE T4 WHERE T4.WORK_ID=#{workId} AND T4.EPI_ID=#{epiId}),0)+1)-->
+<!--             , #{name}-->
+<!--             , #{lastedit}-->
+<!--             , IFNULL((SELECT T5.SCENE_ID FROM PINTO_SCENE T5 WHERE T5.WORK_ID=#{workId} AND T5.EPI_ID=#{epiId} AND T5.SCENE_ID=#{bfScene}),0)-->
+<!--             , IFNULL((SELECT T6.PAGE_ID FROM PINTO_PAGE T6 WHERE T6.WORK_ID=#{workId} AND T6.EPI_ID=#{epiId} AND T6.SCENE_ID=#{sceneId} AND T6.PAGE_ID=#{bfPage}),0)-->
+<!--             , #{note}-->
+<!--        )ON DUPLICATE KEY UPDATE name=#{name}, lastedit=#{lastedit}, bf_scene=IFNULL((SELECT T5.SCENE_ID FROM PINTO_SCENE T5 WHERE T5.WORK_ID=#{workId} AND T5.EPI_ID=#{epiId} AND T5.SCENE_ID=#{bfScene}),0), bf_page=IFNULL((SELECT T6.PAGE_ID FROM PINTO_PAGE T6 WHERE T6.WORK_ID=#{workId} AND T6.EPI_ID=#{epiId} AND T6.SCENE_ID=#{sceneId} AND T6.PAGE_ID=#{bfPage}),0), note=#{note};-->
+
+<!--    </insert>-->
+
+<!--    <insert id="savePage" parameterType="com.music961.pinto.model.work.Page">-->
+
+<!--        <selectKey keyProperty="pageId" resultType="long" order="BEFORE">-->
+<!--            SELECT IF(-->
+<!--                          (SELECT TT1.PAGE_ID FROM PINTO_PAGE TT1 WHERE TT1.WORK_ID=#{workId} AND TT1.EPI_ID=#{epiId} AND TT1.SCENE_ID=#{sceneId} AND TT1.PAGE_ID=#{pageId}) IS NULL-->
+<!--                        , IFNULL((SELECT MAX(TT2.PAGE_ID) FROM PINTO_PAGE TT2 WHERE TT2.WORK_ID=#{workId} AND TT2.EPI_ID=#{epiId} AND TT2.SCENE_ID=#{sceneId}),0) + 1-->
+<!--                        , #{pageId}-->
+<!--                    )-->
+<!--              FROM DUAL-->
+<!--        </selectKey>-->
+
+
+<!--        INSERT INTO PINTO_PAGE(-->
+<!--               WORK_ID-->
+<!--             , EPI_ID-->
+<!--             , SCENE_ID-->
+<!--             , PAGE_ID-->
+<!--        )VALUES(-->
+<!--               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')-->
+<!--             , IFNULL((SELECT T2.EPI_ID FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId}),'NOTALLOW')-->
+<!--             , IFNULL((SELECT T3.SCENE_ID FROM PINTO_SCENE T3 WHERE T3.WORK_ID=#{workId} AND T3.EPI_ID=#{epiId} AND T3.SCENE_ID=#{sceneId}),'NOTALLOW')-->
+<!--             , IF(-->
+<!--                      (SELECT T4.PAGE_ID FROM PINTO_PAGE T4 WHERE T4.WORK_ID=#{workId} AND T4.EPI_ID=#{epiId} AND T4.SCENE_ID=#{sceneId} AND T4.PAGE_ID=#{pageId}) IS NULL-->
+<!--                    , IFNULL((SELECT MAX(T5.PAGE_ID) FROM PINTO_PAGE T5 WHERE T5.WORK_ID=#{workId} AND T5.EPI_ID=#{epiId} AND T5.SCENE_ID=#{sceneId}),0) + 1-->
+<!--                    , 'NOTALLOW'-->
+<!--                )-->
+<!--        )-->
+
+<!--    </insert>-->
+
+<!--    <insert id="saveOpt" parameterType="com.music961.pinto.model.work.Opt">-->
+
+
+<!--    </insert>-->
+
+
+
+<!--</mapper>-->

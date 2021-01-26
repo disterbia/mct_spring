@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.PageRepository">
+    <select id="getPageList" resultType="com.music961.pinto.model.work.Page">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+          FROM PINTO_PAGE T1
+         WHERE T1.WORK_ID = #{workId}
+    </select>
+
+    <select id="getPageListAll" resultType="com.music961.pinto.model.work.Page">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+          FROM PINTO_PAGE T1
+         WHERE T1.WORK_ID IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <select id="getPages" resultType="com.music961.pinto.model.work.Page">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+          FROM PINTO_PAGE T1
+         WHERE T1.WORK_ID  = #{workId}
+           AND T1.EPI_ID   = #{epiId}
+           AND T1.SCENE_ID = #{sceneId}
+    </select>
+
+    <insert id="createPage" parameterType="com.music961.pinto.model.work.Page">
+        <selectKey keyProperty="pageId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.PAGE_ID) FROM PINTO_PAGE T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId} AND T2.SCENE_ID=#{sceneId}),0)+1
+              FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_PAGE(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , PAGE_ID
+        )VALUES(
+            IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+          , #{epiId}
+          , #{sceneId}
+          , #{pageId}
+        )
+    </insert>
+
+    <insert id="savePages" parameterType="java.util.List">
+        INSERT INTO PINTO_PAGE(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , PAGE_ID
+        )VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            SELECT #{item.workId}
+                 , #{item.epiId}
+                 , #{item.sceneId}
+                 , #{item.pageId}
+              FROM DUAL
+             WHERE EXISTS (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{item.workId} AND T1.USR_KEY = #{item.usrId})
+        </foreach>
+    </insert>
+
+    <delete id="deletePage" parameterType="com.music961.pinto.model.work.Page">
+        DELETE FROM PINTO_PAGE
+         WHERE WORK_ID  = #{workId}
+           AND EPI_ID   = #{epiId}
+           AND SCENE_ID = #{sceneId}
+           AND PAGE_ID  = #{pageId}
+           AND (
+                    SELECT COUNT(*)
+                      FROM PINTO_EPI
+                     WHERE WORK_ID     = #{workId}
+                       AND EPI_ID      = #{epiId}
+                       AND RELEASE_YN  = 1
+                ) &lt; 1
+    </delete>
+
+</mapper>

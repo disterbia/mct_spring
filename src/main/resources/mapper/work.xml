@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.WorkRepository">
+
+    <select id="getMyWork" resultType="com.music961.pinto.model.work.Work">
+        SELECT T1.ID        AS  id
+             , T1.TITLE     AS  title
+             , T1.LASTEDIT  AS  lastedit
+             , T1.FACE      AS  face
+             , T1.USR_KEY   AS  usrKey
+             , T1.LANG      AS  lang
+             , T1.NOTE      AS  note
+             , IFNULL(T2.B_COUNT,0)        AS bCount
+             , IFNULL(T3.VIEW_COUNT,0)     AS viewCount
+             , T1.END_YN    AS endYn
+          FROM PINTO_WORK T1
+          LEFT JOIN (
+                        SELECT X.BRABO_WORK AS BRABO_WORK
+                             , COUNT(*)     AS B_COUNT
+                          FROM WORK_BRABO X
+                         GROUP BY X.BRABO_WORK
+                    )     T2
+            ON T1.ID = T2.BRABO_WORK
+          LEFT JOIN (
+					    SELECT COUNT(WORK_ID) AS VIEW_COUNT
+                             , WORK_ID
+                          FROM PINTO_VIEW_INFO
+                         GROUP BY WORK_ID
+                    )   T3
+            ON T1.ID = T3.WORK_ID
+         WHERE T1.USR_KEY = #{usrId}
+         ORDER BY ID ASC
+    </select>
+
+    <select id="getWorkByRelease" resultType="com.music961.pinto.model.work.Work">
+        SELECT DISTINCT
+               T1.ID       AS id
+             , T1.TITLE    AS title
+             , T1.LASTEDIT AS lastEdit
+             , T1.FACE     AS face
+             , T1.USR_KEY  AS userKey
+             , T1.LANG     AS lang
+             , IFNULL(T3.B_COUNT,0) AS bCount
+             , (
+                    SELECT COUNT(*)
+                      FROM WORK_BRABO
+                     WHERE BRABO_WORK = #{id}
+                       AND BRABO_USR  = #{usrId}
+                )          AS braboYn
+             , T1.END_YN    AS endYn
+          FROM PINTO_WORK T1
+          LEFT JOIN PINTO_EPI T2
+            ON T1.ID = T2.WORK_ID
+          LEFT JOIN (
+                        SELECT X.BRABO_WORK AS BRABO_WORK
+                             , COUNT(*)     AS B_COUNT
+                          FROM WORK_BRABO X
+                         GROUP BY X.BRABO_WORK
+                    )         T3
+            ON T1.ID = T3.BRABO_WORK
+         WHERE T2.RELEASE_YN = 1
+           AND T1.ID = #{id}
+    </select>
+
+    <select id="getWorkByReleaseObBrabo" resultType="com.music961.pinto.model.work.Work">
+        SELECT DISTINCT
+               T1.ID       AS id
+             , T1.TITLE    AS title
+             , T1.LASTEDIT AS lastEdit
+             , T1.FACE     AS face
+             , T1.USR_KEY  AS userKey
+             , T1.LANG     AS lang
+             , IFNULL(T3.B_COUNT,0) AS bCount
+             , T1.END_YN   AS endYn
+          FROM PINTO_WORK     T1
+          LEFT JOIN PINTO_EPI T2
+            ON T1.ID = T2.WORK_ID
+          LEFT JOIN (
+                        SELECT X.BRABO_WORK AS BRABO_WORK
+                             , COUNT(*)     AS B_COUNT
+                          FROM WORK_BRABO X
+                         GROUP BY X.BRABO_WORK
+                     )         T3
+            ON T1.ID = T3.BRABO_WORK
+         WHERE T2.RELEASE_YN = 1
+         ORDER BY bCount DESC , ID ASC
+         LIMIT 20
+    </select>
+
+    <select id="getWorkByReleaseObTime" resultType="com.music961.pinto.model.work.Work">
+        SELECT DISTINCT
+               T1.ID       AS id
+             , T1.TITLE    AS title
+             , T1.LASTEDIT AS lastEdit
+             , T1.FACE     AS face
+             , T1.USR_KEY  AS userKey
+             , T1.LANG     AS lang
+             , IFNULL(T3.B_COUNT,0) AS bCount
+             , T1.END_YN    AS endYn
+          FROM PINTO_WORK     T1
+          LEFT JOIN PINTO_EPI T2
+            ON T1.ID = T2.WORK_ID
+          LEFT JOIN (
+                        SELECT X.BRABO_WORK AS BRABO_WORK
+                             , COUNT(*)     AS B_COUNT
+                          FROM WORK_BRABO X
+                         GROUP BY X.BRABO_WORK
+                    )         T3
+            ON T1.ID = T3.BRABO_WORK
+         WHERE T2.RELEASE_YN = 1
+         ORDER BY ID DESC
+         LIMIT 20
+    </select>
+
+    <select id="getWorkBrabo" resultType="com.music961.pinto.model.work.Work">
+        SELECT T1.ID       AS id
+             , T1.TITLE    AS title
+             , T1.LASTEDIT AS lastedit
+             , T1.FACE     AS face
+             , T1.USR_KEY  AS usrKey
+             , T1.LANG     AS lang
+             , IFNULL(T2.B_COUNT,0) AS bCount
+             , T1.END_YN   AS endYn
+          FROM PINTO_WORK T1
+          LEFT JOIN (
+                        SELECT X.BRABO_WORK AS BRABO_WORK
+                             , COUNT(*)     AS B_COUNT
+                          FROM WORK_BRABO X
+                         GROUP BY X.BRABO_WORK
+                    )         T2
+            ON T1.ID = T2.BRABO_WORK
+             , WORK_BRABO     T3
+         WHERE T1.ID = T3.BRABO_WORK
+           AND T3.BRABO_USR = #{usrId}
+         ORDER BY BCOUNT DESC
+         LIMIT 20
+    </select>
+
+    <select id="getAllWork" resultType="com.music961.pinto.model.work.Work">
+        SELECT T1.ID                   AS  id
+             , T1.TITLE                AS  title
+             , T1.LASTEDIT             AS  lastedit
+             , T1.FACE                 AS  face
+             , T1.USR_KEY              AS  usrKey
+             , T1.LANG                 AS  lang
+             , T2.USR_NAME             AS  usrName
+			 , IFNULL(T3.VIEW_COUNT,0) AS  viewCount
+             , T1.END_YN               AS endYn
+          FROM PINTO_WORK T1
+          LEFT JOIN (
+					    SELECT COUNT(WORK_ID) AS VIEW_COUNT
+                             , WORK_ID
+                          FROM PINTO_VIEW_INFO
+                         GROUP BY WORK_ID
+                    )   T3
+            ON T1.ID = T3.WORK_ID
+             , PINTO_USR T2
+          WHERE T1.USR_KEY = T2.USR_KEY
+          ORDER BY ID DESC
+          LIMIT 20
+    </select>
+
+    <select id="getWorkInfo" resultType="com.music961.pinto.model.work.Work">
+        SELECT T1.ID                   AS  id
+             , T1.TITLE                AS  title
+             , T1.LASTEDIT             AS  lastedit
+             , T1.FACE                 AS  face
+             , T1.USR_KEY              AS  usrKey
+             , T1.LANG                 AS  lang
+             , T1.NOTE                 AS  note
+			 , T2.GENRE_ID             AS genreId
+             , T2.GENRE_VALUE          AS genreValue
+             , IFNULL(T3.EPI_ID,0)	   AS epiId
+             , IFNULL(T3.SCENE_ID,0)   AS sceneId
+             , IFNULL(T3.PAGE_ID,0)	   AS pageId
+             , T3.READ_DATE            AS readDate
+             , T1.END_YN               AS endYn
+          FROM PINTO_WORK T1
+		  LEFT JOIN (SELECT *
+                       FROM F_WORK_GENRE A
+                          , PINTO_GENRE B
+                      WHERE A.GENRE_ID = B.ID) T2
+          ON T1.ID = T2.WORK_ID
+          LEFT JOIN (SELECT *
+					   FROM WORK_USR
+                      WHERE WORK_ID = #{workId}
+                        AND USR_KEY = #{usrId}) T3
+		  ON T1.ID= T3.WORK_ID
+         WHERE T1.ID = #{workId}
+    </select>
+
+    <select id="getWorkPopular" resultType="java.util.HashMap">
+       SELECT IFNULL(SUM(X.BRABO_COUNT),0) AS braboCount
+            , IFNULL(SUM(X.VIEW_COUNT),0)  AS viewCount
+            , IFNULL(MAX(X.MESSAGE),0)     AS message
+         FROM (
+                SELECT T1.ID
+                     , T2.BRABO_COUNT AS BRABO_COUNT
+                     , T3.VIEW_COUNT  AS VIEW_COUNT
+                     , T4.MESSAGE     AS MESSAGE
+	              FROM PINTO_WORK T1
+			      LEFT JOIN (
+                                SELECT COUNT(*) AS BRABO_COUNT
+                                     , BRABO_WORK
+                                  FROM WORK_BRABO
+                                 GROUP BY BRABO_WORK
+                            ) T2
+                    ON T1.ID = T2.BRABO_WORK
+			      LEFT JOIN (
+                                SELECT COUNT(*) AS VIEW_COUNT
+                                     , WORK_ID
+                                  FROM PINTO_VIEW_INFO
+                                 GROUP BY WORK_ID
+                            ) T3
+                    ON T1.ID = T3.WORK_ID
+                  LEFT JOIN (
+						        SELECT COUNT(*) AS MESSAGE
+                                   , TO_USR_ID
+							  FROM USR_MESSAGE
+							 WHERE TO_USR_ID  = #{usrId}
+							   AND IS_CHECKED = 0
+					) T4
+                    ON T1.USR_KEY = T4.TO_USR_ID
+       WHERE USR_KEY = #{usrId}
+            ) X
+    </select>
+
+    <insert id="saveBookMark">
+        INSERT INTO WORK_USR
+        VALUES(
+              #{workId}
+            , #{usrId}
+            , #{epiId}
+            , #{sceneId}
+            , #{pageId}
+            , NOW()
+        )ON DUPLICATE KEY
+        UPDATE EPI_ID   = #{epiId},
+               SCENE_ID = #{sceneId},
+               PAGE_ID  = #{pageId},
+               READ_DATE = now()
+    </insert>
+
+    <insert id="saveWork" parameterType="com.music961.pinto.model.work.Work">
+        <selectKey keyProperty="id" resultType="long" order="BEFORE">
+            SELECT IF(1>#{id}, IFNULL((SELECT MAX(TEM.ID) FROM PINTO_WORK TEM),0) + 1,#{id})
+              FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_WORK (
+              id
+            , title
+            , lastedit
+            , face
+            , usr_key
+            , lang
+            , note
+        ) VALUES (
+              IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{id} AND T1.USR_KEY=#{usrKey}),IFNULL((SELECT MAX(T2.ID) FROM PINTO_WORK T2),0)+1)
+            , #{title}
+            , #{lastedit}
+            , IF(#{face} = 0 ,0,IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{id} AND T1.USR_KEY=#{usrKey}),IFNULL((SELECT MAX(T2.ID) FROM PINTO_WORK T2),0)+1))
+            , #{usrKey}
+            , #{lang}
+            , #{note}
+        )ON DUPLICATE KEY UPDATE title=#{title}, lastedit=#{lastedit}, face=#{face}, usr_key = #{usrKey};
+
+        INSERT INTO PINTO_CAST(WORK_ID,CAST_ID,VAR_ID,RES_NO,ZOOM,BIASX,BIASY)
+        VALUES(
+                #{id}
+              , 1
+              , 10000
+              , -100
+              , 1.00
+              , 0.5
+              , 0.5
+              ) ON DUPLICATE KEY UPDATE VAR_ID = 10000 ,RES_NO = -100, ZOOM=1.00, BIASX=0.5, BIASY=0.5;
+    </insert>
+
+    <update id="updateWork" parameterType="com.music961.pinto.model.work.Work">
+        <selectKey keyProperty="id" resultType="long" order="BEFORE">
+            SELECT IF(1>#{id}, IFNULL((SELECT MAX(TEM.ID) FROM PINTO_WORK TEM),0) + 1,#{id})
+              FROM DUAL
+        </selectKey>
+        UPDATE PINTO_WORK
+           SET TITLE    = #{title}
+             , LASTEDIT = #{lastedit}
+             , FACE     = #{face}
+             , NOTE     = #{note}
+         WHERE ID = IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{id} AND T1.USR_KEY=#{usrKey}),IFNULL((SELECT MAX(T2.ID) FROM PINTO_WORK T2),0)+1)
+    </update>
+
+    <update id="theEnd">
+        UPDATE PINTO_WORK
+           SET END_YN  = IF(
+                             (
+                                SELECT END_YN
+                                  FROM PINTO_WORK
+                                 WHERE ID      = #{workId}
+                                   AND USR_KEY = #{usrId}
+                              ) = 0,1,0
+                            )
+         WHERE ID      = #{workId}
+           AND USR_KEY = #{usrId}
+           AND (SELECT COUNT(*)
+                  FROM PINTO_EPI
+                 WHERE WORK_ID = #{workId}
+                   AND RELEASE_YN != 2
+                )      = 0
+           AND (SELECT COUNT(*)
+                  FROM PINTO_EPI
+                 WHERE WORK_ID =#{workId}
+                )      !=0
+    </update>
+
+    <delete id="deleteWorkCascade">
+        DELETE
+          FROM PINTO_WORK
+         WHERE ID        =   #{workId}
+           AND USR_KEY   =   #{usrId}
+           AND (
+                    SELECT COUNT(*)
+                      FROM PINTO_EPI
+                     WHERE WORK_ID     = #{workId}
+                       AND RELEASE_YN  != 2
+                ) = 0
+    </delete>
+
+</mapper>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.BraboRepository">
+
+    <insert id="like">
+        INSERT INTO PINTO_BRABO(
+               BRABO_USR
+             , BRABO_RES
+        ) VALUES(
+                   #{usr}
+                 , (SELECT IF(RES_GROUP=0,#{res},RES_GROUP) FROM PINTO_RES WHERE RES_KEY = #{res})
+                )
+    </insert>
+
+    <insert id="saveBrabo">
+        INSERT INTO WORK_BRABO
+        VALUES (#{usrId},IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId}),'NOTALLOW'),now())
+    </insert>
+
+    <delete id="dislike">
+        DELETE
+          FROM PINTO_BRABO
+         WHERE BRABO_USR = #{usr}
+           AND BRABO_RES = #{res}
+    </delete>
+
+    <delete id="deleteBrabo">
+        DELETE FROM WORK_BRABO
+         WHERE BRABO_USR  = #{usrId}
+           AND BRABO_WORK =  IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+    </delete>
+
+</mapper>

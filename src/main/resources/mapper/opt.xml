@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.OptRepository">
+    <select id="getOptList" resultType="com.music961.pinto.model.work.Opt">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+             , T1.OPT_ID   AS optId
+             , T1.PROTOCOL AS protocol
+             , T1.OPT      AS opt
+          FROM PINTO_OPT T1
+         WHERE T1.WORK_ID = #{workId}
+    </select>
+
+    <select id="getOptListAll" resultType="com.music961.pinto.model.work.Opt">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+             , T1.OPT_ID   AS optId
+             , T1.PROTOCOL AS protocol
+             , T1.OPT      AS opt
+          FROM PINTO_OPT T1
+         WHERE T1.WORK_ID IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <select id="getOpts" resultType="com.music961.pinto.model.work.Opt">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.PAGE_ID  AS pageId
+             , T1.OPT_ID   AS optId
+             , T1.PROTOCOL AS protocol
+             , T1.OPT      AS opt
+          FROM PINTO_OPT T1
+         WHERE T1.WORK_ID  = #{workId}
+           AND T1.EPI_ID   = #{epiId}
+           AND T1.SCENE_ID = #{sceneId}
+           AND T1.PAGE_ID  = #{pageId}
+    </select>
+
+    <insert id="createOpt" parameterType="com.music961.pinto.model.work.Opt">
+        <selectKey keyProperty="optId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.OPT_ID)
+                             FROM PINTO_OPT T2
+                            WHERE T2.WORK_ID  = #{workId}
+                              AND T2.EPI_ID   = #{epiId}
+                              AND T2.SCENE_ID = #{sceneId}
+                              AND T2.PAGE_ID  = #{pageId}),0)+1
+              FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_OPT(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , PAGE_ID
+             , OPT_ID
+        )VALUES(
+            IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+          , #{epiId}
+          , #{sceneId}
+          , #{pageId}
+          , #{optId}
+        )
+    </insert>
+
+    <insert id="saveOpts" parameterType="java.util.List">
+        INSERT INTO PINTO_OPT(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , PAGE_ID
+             , OPT_ID
+             , PROTOCOL
+             , OPT
+        )VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+              #{item.workId}
+             , #{item.epiId}
+             , #{item.sceneId}
+             , #{item.pageId}
+             , #{item.optId}
+             , #{item.protocol}
+             , #{item.opt}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteOpt" parameterType="com.music961.pinto.model.work.Opt">
+        DELETE FROM PINTO_OPT
+         WHERE WORK_ID  = #{workId}
+           AND EPI_ID   = #{epiId}
+           AND SCENE_ID = #{sceneId}
+           AND PAGE_ID  = #{pageId}
+           AND OPT_ID   = #{optId}
+           AND (
+                    SELECT COUNT(*)
+                      FROM PINTO_EPI
+                     WHERE WORK_ID     = #{workId}
+                       AND EPI_ID      = #{epiId}
+                       AND RELEASE_YN  = 1
+                ) &lt; 1
+    </delete>
+
+</mapper>

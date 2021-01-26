@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.ViewRepository">
+    <insert id="saveViewInfo">
+        INSERT INTO PINTO_VIEW_INFO(
+               WORK_ID
+             , USR_ID
+             , ORIGIN_DATE
+             , VIEW_DATE
+        )VALUES(
+                #{id}
+              , #{usrId}
+              , IF(
+                     NOW() > (SELECT DATE_ADD(IFNULL((SELECT MAX(A.ORIGIN_DATE)
+                                FROM PINTO_VIEW_INFO A
+                               WHERE A.WORK_ID=IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{id}),'NOTALLOW')
+                                 AND A.USR_ID =#{usrId}),NOW()), INTERVAL 1 HOUR)),NOW()
+                   , IFNULL((SELECT MAX(B.ORIGIN_DATE)
+                               FROM PINTO_VIEW_INFO B
+                              WHERE B.WORK_ID=IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{id}),'NOTALLOW')
+                                AND B.USR_ID = #{usrId}),NOW())
+                )
+              , NOW()
+        ) ON DUPLICATE KEY UPDATE VIEW_DATE = NOW();
+    </insert>
+</mapper>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.VarRepository">
+
+    <insert id="saveVar" parameterType="com.music961.pinto.model.work.Var">
+
+        <selectKey keyProperty="varId" resultType="long" order="BEFORE">
+            SELECT IF(#{varId}>0,#{varId},IFNULL((SELECT MAX(TEM.VAR_ID) FROM PINTO_VAR TEM WHERE WORK_ID=${workId}), 0) + 1)
+              FROM DUAL
+        </selectKey>
+
+        INSERT INTO pinto_var (
+               work_id
+             , var_id
+             , var_value
+        ) VALUES (
+               #{workId}
+             , IF(#{varId}>0,#{varId},IFNULL((SELECT MAX(TEM.VAR_ID) FROM PINTO_VAR TEM WHERE WORK_ID=${workId}), 0) + 1)
+             , #{varValue}
+        )ON DUPLICATE KEY UPDATE var_value = #{varValue};
+    </insert>
+
+    <delete id="deleteVarByWorkId">
+        DELETE FROM PINTO_VAR WHERE WORK_ID=#{workId}
+    </delete>
+</mapper>

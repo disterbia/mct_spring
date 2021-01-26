@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.UserRepository">
+    <select id="getUserById" resultType="com.music961.pinto.model.User">
+        SELECT A.USR_KEY      AS ID
+             , A.LOGIN_ID     AS EMAIL
+             , B.USR_NAME     AS NAME
+             , B.USR_HIGHNESS AS HIGHNESS
+             , B.USR_GEM      AS GEM
+          FROM PINTO_LOGIN    A
+          LEFT JOIN PINTO_USR B
+            ON A.USR_KEY  = B.USR_KEY
+         WHERE A.USR_KEY = #{id}
+    </select>
+
+    <select id="loginGoogleOauth" resultType="com.music961.pinto.model.User">
+        SELECT A.USR_KEY      AS ID
+             , A.LOGIN_ID     AS EMAIL
+             , B.USR_NAME     AS NAME
+             , B.USR_HIGHNESS AS HIGHNESS
+             , B.USR_GEM      AS GEM
+          FROM PINTO_LOGIN    A
+          LEFT JOIN PINTO_USR B
+            ON A.USR_KEY  = B.USR_KEY
+         WHERE A.LOGIN_ID = #{email}
+    </select>
+
+    <insert id="joinByGoogle">
+        INSERT INTO PINTO_USR (
+               USR_NAME
+        ) VALUES (
+               #{name}
+        );
+        INSERT INTO PINTO_LOGIN (
+               USR_KEY
+             , LOGIN_ID
+        ) VALUES (
+               LAST_INSERT_ID()
+             , #{email}
+        );
+
+    </insert>
+</mapper>

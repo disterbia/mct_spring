@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.SceneRepository">
+
+    <select id="getMyScene" resultType="com.music961.pinto.model.work.Scene">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.NAME     AS name
+             , T1.LASTEDIT AS lastedit
+             , T1.BF_SCENE AS bfScene
+             , T1.BF_PAGE  AS bfPage
+             , T1.NOTE     AS note
+          FROM PINTO_SCENE T1
+         WHERE T1.WORK_ID = #{workId}
+           AND T1.EPI_ID = #{epiId}
+        ORDER BY workId , epiId , sceneId ASC
+    </select>
+
+    <select id="getSceneList" resultType="com.music961.pinto.model.work.Scene">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.NAME     AS name
+             , T1.LASTEDIT AS lastedit
+             , T1.BF_SCENE AS bfScene
+             , T1.BF_PAGE  AS bfPage
+             , T1.NOTE     AS note
+          FROM PINTO_SCENE T1
+         WHERE T1.WORK_ID = #{workId}
+    </select>
+
+    <select id="getSceneListAll" resultType="com.music961.pinto.model.work.Scene">
+        SELECT T1.WORK_ID  AS workId
+             , T1.EPI_ID   AS epiId
+             , T1.SCENE_ID AS sceneId
+             , T1.NAME     AS name
+             , T1.LASTEDIT AS lastedit
+             , T1.BF_SCENE AS bfScene
+             , T1.BF_PAGE  AS bfPage
+             , T1.NOTE     AS note
+          FROM PINTO_SCENE T1
+         WHERE T1.WORK_ID IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <insert id="createScene" parameterType="com.music961.pinto.model.work.Scene">
+        <selectKey keyProperty="sceneId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.SCENE_ID) FROM PINTO_SCENE T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId}),0)+1
+              FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_SCENE(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , NAME
+             , LASTEDIT
+             , NOTE
+        )VALUES(
+               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+             , #{epiId}
+             , #{sceneId}
+             , #{name}
+             , #{lastedit}
+             , #{note}
+        );
+    </insert>
+
+    <insert id="saveSceneWaterFall" parameterType="com.music961.pinto.model.work.Scene">
+        <selectKey keyProperty="sceneId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.SCENE_ID) FROM PINTO_SCENE T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId}),0)+1
+            FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_SCENE(
+              WORK_ID
+            , EPI_ID
+            , SCENE_ID
+            , NAME
+            , LASTEDIT
+        )VALUES(
+                  IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+                , #{epiId}
+                , IFNULL((SELECT MAX(T2.SCENE_ID) FROM PINTO_SCENE T2 WHERE T2.WORK_ID=#{workId} AND T2.EPI_ID=#{epiId}),0)+1
+                , #{name}
+                , #{lastedit}
+        );
+    </insert>
+
+    <insert id="saveScenes" parameterType="java.util.List">
+        INSERT INTO PINTO_SCENE(
+               WORK_ID
+             , EPI_ID
+             , SCENE_ID
+             , NAME
+             , LASTEDIT
+             , BF_SCENE
+             , BF_PAGE
+             , NOTE
+        )VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                   #{item.workId}
+                 , #{item.epiId}
+                 , #{item.sceneId}
+                 , #{item.name}
+                 , #{item.lastedit}
+                 , #{item.bfScene}
+                 , #{item.bfPage}
+                 , #{item.note}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateScene" parameterType="com.music961.pinto.model.work.Scene">
+        UPDATE PINTO_SCENE
+           SET NAME      = #{name}
+             , LASTEDIT  = #{lastedit}
+             , NOTE      = #{note}
+         WHERE WORK_ID  = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+           AND EPI_ID   = #{epiId}
+           AND SCENE_ID = #{sceneId}
+    </update>
+
+    <delete id="deleteScene" parameterType="com.music961.pinto.model.work.Scene">
+        DELETE
+          FROM PINTO_SCENE
+         WHERE WORK_ID      =   (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY = #{usrId})
+           AND EPI_ID       =   #{epiId}
+           AND SCENE_ID     =   #{sceneId}
+           AND (
+                    SELECT COUNT(*)
+                      FROM PINTO_EPI
+                     WHERE WORK_ID     = #{workId}
+                       AND EPI_ID      = #{epiId}
+                       AND RELEASE_YN  = 1
+                ) &lt; 1
+    </delete>
+</mapper>

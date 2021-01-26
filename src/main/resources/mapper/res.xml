@@ -1,0 +1,1158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.ResRepository">
+    <select id="getFileList" resultType="Int">
+        SELECT RES_KEY AS fileName
+          FROM PINTO_RES
+         WHERE IF(RES_GROUP=0,RES_KEY,RES_GROUP) IN (
+                                                        SELECT RES_KEY
+                                                          FROM F_RES_USR
+                                                         WHERE USR_KEY = #{id}
+                                                    )
+        <if test="cFileList != null">
+           AND RES_KEY NOT IN
+            <foreach collection="cFileList" item="i" open="(" close=")" separator=",">
+                #{i}
+            </foreach>
+        </if>
+    </select>
+<!--    <select id="getFileList" resultType="Int">-->
+<!--        SELECT RES_KEY AS FILENAME-->
+<!--          FROM F_RES_USR-->
+<!--         WHERE USR_KEY=#{id}-->
+<!--        <if test="cFileList != null">-->
+<!--           AND RES_KEY NOT IN-->
+<!--            <foreach collection="cFileList" item="i" open="(" close=")" separator=",">-->
+<!--                #{i}-->
+<!--            </foreach>-->
+<!--        </if>-->
+<!--    </select>-->
+
+    <select id="getResource" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                   AS fileName
+             , A.RES_CAT                   AS CAT
+             , A.RES_USR                   AS USR
+             , A.RES_TITLE                 AS TITLE
+             , A.RES_DATE                  AS DATE
+             , A.RES_PRICE                 AS PRICE
+             , A.RES_PRICE_DIS             AS priceDis
+             , IFNULL(A.RES_NOTE, "0")     AS NOTE
+             , A.RES_VIEW                  AS VIEW
+             , A.OPEN_YN                   AS openYn
+             , ''                          AS FILE
+             , ''                          AS FILETHUMBNAIL
+             , ''                          AS FILEORIGIN
+             , ''                          AS TAG
+             , A.RES_GROUP                 AS resGroup
+          FROM PINTO_RES A
+          JOIN (SELECT *
+                  FROM F_RES_USR
+                 WHERE USR_KEY=#{id}) B
+            ON IF(A.RES_GROUP = 0 ,A.RES_KEY, A.RES_GROUP) = B.RES_KEY
+         WHERE A.RES_KEY = #{filename}
+    </select>
+
+    <select id="getMusic" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY       AS fileName
+             , A.RES_CAT       AS CAT
+             , A.RES_USR       AS USR
+             , A.RES_TITLE     AS TITLE
+             , A.RES_DATE      AS DATE
+             , A.RES_PRICE     AS PRICE
+             , A.RES_PRICE_DIS AS priceDis
+             , A.RES_NOTE      AS NOTE
+             , A.RES_VIEW      AS VIEW
+             , ''              AS FILE
+             , ''              AS FILETHUMBNAIL
+             , ''              AS FILEORIGIN
+             , ''              AS TAG
+          FROM PINTO_RES A
+         WHERE A.RES_KEY=#{filename}
+    </select>
+
+    <select id="getMyRes" resultType="Int">
+        SELECT COUNT(*)
+          FROM F_RES_USR
+         WHERE USR_KEY = #{usrId}
+           AND RES_KEY = #{resNo}
+    </select>
+
+
+    <select id="getList" resultType="com.music961.pinto.model.Res">
+        SELECT RES_KEY                                                         AS fileName
+             , RES_CAT                                                         AS CAT
+             , RES_USR                                                         AS USR
+             , RES_TITLE                                                       AS TITLE
+             , RES_DATE                                                        AS DATE
+             , RES_PRICE                                                       AS PRICE
+             , RES_PRICE_DIS                                                   AS priceDis
+             , RES_NOTE                                                        AS NOTE
+             , RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                              AS FILEORIGIN
+             , ''                                                              AS TAG
+        FROM PINTO_RES
+        WHERE RES_CAT=#{cat}
+    </select>
+
+    <select id="getListOrderByBrabo0" resultType="com.music961.pinto.model.Res">
+        SELECT * FROM(
+                        SELECT A.*
+                             , @ROWNUM:= @ROWNUM+1 AS ROWNUM
+                          FROM (
+                                    SELECT A.RES_KEY                                                         AS fileName
+                                         , A.RES_CAT                                                         AS CAT
+                                         , A.RES_USR                                                         AS USR
+                                         , A.RES_TITLE                                                       AS TITLE
+                                         , A.RES_DATE                                                        AS DATE
+                                         , A.RES_PRICE                                                       AS PRICE
+                                         , A.RES_PRICE_DIS                                                   AS priceDis
+                                         , A.RES_NOTE                                                        AS NOTE
+                                         , A.RES_VIEW                                                        AS VIEW
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+                                         , ''                                                                AS FILEORIGIN
+                                         , ''                                                                AS TAG
+                                         , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+                                         , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+                                         , A.RES_GROUP                                                       AS resGroup
+                                         , (
+                                                SELECT COUNT(X.RES_KEY)
+                                                  FROM PINTO_RES X
+                                                 WHERE X.RES_CAT = #{cat}
+                                                   AND A.RES_KEY = X.RES_GROUP
+                                            )                                                                AS resGroupCount
+                                         , E.USR_NAME                                                         AS usrName
+                                      FROM PINTO_RES A
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES AS RES_KEY
+                                                         , COUNT(*)  AS B_CNT
+                                                      FROM PINTO_BRABO
+                                                     GROUP BY BRABO_RES
+                                                 ) B
+                                        ON A.RES_KEY = B.RES_KEY
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES
+                                                      FROM PINTO_BRABO
+                                                     WHERE BRABO_USR = #{usr}
+                                                 ) C
+                                        ON A.RES_KEY = C.BRABO_RES
+                                      LEFT JOIN PINTO_USR E
+                                        ON A.RES_USR = E.USR_KEY
+                                      JOIN ( SELECT @ROWNUM:= 0 ) AS D
+                                     WHERE A.RES_CAT = #{cat}
+                                       AND A.OPEN_YN = 1
+                                     ORDER BY B.B_CNT DESC , FILENAME ASC
+                                ) A
+                            ) T1
+         WHERE T1.ROWNUM > (
+                                SELECT W.ROWNUM
+                                  FROM (
+                                            SELECT A.*,@ROWNUM2:= @ROWNUM2+1 AS ROWNUM
+                                              FROM (
+                                                        SELECT A.RES_KEY         AS fileName
+                                                             , IFNULL(B.B_CNT,0) AS BRABOCNT
+                                                          FROM PINTO_RES A
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES AS RES_KEY
+                                                                             , COUNT(*)  AS B_CNT
+                                                                          FROM PINTO_BRABO
+                                                                         GROUP BY BRABO_RES
+                                                                     )   B
+                                                            ON A.RES_KEY = B.RES_KEY
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES
+                                                                          FROM PINTO_BRABO
+                                                                         WHERE BRABO_USR = #{usr}
+                                                                     )   C
+                                                            ON A.RES_KEY = C.BRABO_RES
+                                                          JOIN (SELECT @ROWNUM2:= 0 ) AS D
+                                                         WHERE A.RES_CAT    = #{cat}
+                                                           AND A.OPEN_YN    = 1
+                                                         ORDER BY B.B_CNT DESC , FILENAME ASC) A) W
+                                 WHERE W.FILENAME = #{fn}
+                            )
+
+    </select>
+
+    <select id="getListOrderByBrabo1" resultType="com.music961.pinto.model.Res">
+        SELECT * FROM(
+                        SELECT A.*
+                             , @ROWNUM:= @ROWNUM+1 AS ROWNUM
+                          FROM (
+                                    SELECT A.RES_KEY                                                         AS fileName
+                                         , A.RES_CAT                                                         AS CAT
+                                         , A.RES_USR                                                         AS USR
+                                         , A.RES_TITLE                                                       AS TITLE
+                                         , A.RES_DATE                                                        AS DATE
+                                         , A.RES_PRICE                                                       AS PRICE
+                                         , A.RES_PRICE_DIS                                                   AS priceDis
+                                         , A.RES_NOTE                                                        AS NOTE
+                                         , A.RES_VIEW                                                        AS VIEW
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+                                         , ''                                                                AS FILEORIGIN
+                                         , ''                                                                AS TAG
+                                         , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+                                         , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+                                         , A.RES_GROUP                                                       AS resGroup
+                                         , (
+                                                SELECT COUNT(X.RES_KEY)
+                                                  FROM PINTO_RES X
+                                                 WHERE X.RES_CAT = #{cat}
+                                                   AND A.RES_KEY = X.RES_GROUP
+                                            )                                                                AS resGroupCount
+                                          , E.USR_NAME                                                         AS usrName
+                                      FROM PINTO_RES A
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES AS RES_KEY
+                                                         , COUNT(*)  AS B_CNT
+                                                      FROM PINTO_BRABO
+                                                     GROUP BY BRABO_RES
+                                                 ) B
+                                        ON A.RES_KEY = B.RES_KEY
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES
+                                                      FROM PINTO_BRABO
+                                                     WHERE BRABO_USR = #{usr}
+                                                 ) C
+                                        ON A.RES_KEY = C.BRABO_RES
+                                      LEFT JOIN PINTO_USR E
+                                        ON A.RES_USR = E.USR_KEY
+                                      JOIN ( SELECT @ROWNUM:= 0 ) AS D
+                                     WHERE A.RES_CAT = #{cat}
+                                       AND A.OPEN_YN = 1
+                                       AND A.RES_PRICE = 0
+                                     ORDER BY B.B_CNT DESC , FILENAME ASC
+                                ) A
+                            ) T1
+         WHERE T1.ROWNUM > (
+                                SELECT W.ROWNUM
+                                  FROM (
+                                            SELECT A.*,@ROWNUM2:= @ROWNUM2+1 AS ROWNUM
+                                              FROM (
+                                                        SELECT A.RES_KEY         AS fileName
+                                                             , IFNULL(B.B_CNT,0) AS BRABOCNT
+                                                          FROM PINTO_RES A
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES AS RES_KEY
+                                                                             , COUNT(*)  AS B_CNT
+                                                                          FROM PINTO_BRABO
+                                                                         GROUP BY BRABO_RES
+                                                                     )   B
+                                                            ON A.RES_KEY = B.RES_KEY
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES
+                                                                          FROM PINTO_BRABO
+                                                                         WHERE BRABO_USR = #{usr}
+                                                                     )   C
+                                                            ON A.RES_KEY = C.BRABO_RES
+                                                          LEFT JOIN PINTO_USR E
+                                                            ON A.RES_USR = E.USR_KEY
+                                                          JOIN (SELECT @ROWNUM2:= 0 ) AS D
+                                                         WHERE A.RES_CAT    = #{cat}
+                                                           AND A.OPEN_YN    = 1
+                                                           AND A.RES_PRICE  = 0
+                                                         ORDER BY B.B_CNT DESC , FILENAME ASC) A) W
+                                 WHERE W.FILENAME = #{fn}
+                            )
+
+    </select>
+
+    <select id="getListOrderByBrabo2" resultType="com.music961.pinto.model.Res">
+        SELECT * FROM(
+                        SELECT A.*
+                             , @ROWNUM:= @ROWNUM+1 AS ROWNUM
+                          FROM (
+                                    SELECT A.RES_KEY                                                         AS fileName
+                                         , A.RES_CAT                                                         AS CAT
+                                         , A.RES_USR                                                         AS USR
+                                         , A.RES_TITLE                                                       AS TITLE
+                                         , A.RES_DATE                                                        AS DATE
+                                         , A.RES_PRICE                                                       AS PRICE
+                                         , A.RES_PRICE_DIS                                                   AS priceDis
+                                         , A.RES_NOTE                                                        AS NOTE
+                                         , A.RES_VIEW                                                        AS VIEW
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+                                         , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+                                         , ''                                                                AS FILEORIGIN
+                                         , ''                                                                AS TAG
+                                         , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+                                         , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+                                         , A.RES_GROUP                                                       AS resGroup
+                                         , (
+                                                SELECT COUNT(X.RES_KEY)
+                                                  FROM PINTO_RES X
+                                                 WHERE X.RES_CAT = #{cat}
+                                                   AND A.RES_KEY = X.RES_GROUP
+                                            )                                                                AS resGroupCount
+                                         , E.USR_NAME                                                         AS usrName
+                                      FROM PINTO_RES A
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES AS RES_KEY
+                                                         , COUNT(*)  AS B_CNT
+                                                      FROM PINTO_BRABO
+                                                     GROUP BY BRABO_RES
+                                                 ) B
+                                        ON A.RES_KEY = B.RES_KEY
+                                      LEFT JOIN (
+                                                    SELECT BRABO_RES
+                                                      FROM PINTO_BRABO
+                                                     WHERE BRABO_USR = #{usr}
+                                                 ) C
+                                        ON A.RES_KEY = C.BRABO_RES
+                                      LEFT JOIN PINTO_USR E
+                                        ON A.RES_USR = E.USR_KEY
+                                      JOIN ( SELECT @ROWNUM:= 0 ) AS D
+                                     WHERE A.RES_CAT = #{cat}
+                                       AND A.OPEN_YN = 1
+                                       AND A.RES_PRICE  > 0
+                                     ORDER BY B.B_CNT DESC , FILENAME ASC
+                                ) A
+                            ) T1
+         WHERE T1.ROWNUM > (
+                                SELECT W.ROWNUM
+                                  FROM (
+                                            SELECT A.*,@ROWNUM2:= @ROWNUM2+1 AS ROWNUM
+                                              FROM (
+                                                        SELECT A.RES_KEY         AS fileName
+                                                             , IFNULL(B.B_CNT,0) AS BRABOCNT
+                                                          FROM PINTO_RES A
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES AS RES_KEY
+                                                                             , COUNT(*)  AS B_CNT
+                                                                          FROM PINTO_BRABO
+                                                                         GROUP BY BRABO_RES
+                                                                     )   B
+                                                            ON A.RES_KEY = B.RES_KEY
+                                                          LEFT JOIN (
+                                                                        SELECT BRABO_RES
+                                                                          FROM PINTO_BRABO
+                                                                         WHERE BRABO_USR = #{usr}
+                                                                     )   C
+                                                            ON A.RES_KEY = C.BRABO_RES
+                                                          LEFT JOIN PINTO_USR E
+                                                            ON A.RES_USR = E.USR_KEY
+                                                          JOIN (SELECT @ROWNUM2:= 0 ) AS D
+                                                         WHERE A.RES_CAT    = #{cat}
+                                                           AND A.OPEN_YN    = 1
+                                                           AND A.RES_PRICE  > 0
+                                                         ORDER BY B.B_CNT DESC , FILENAME ASC) A) W
+                                 WHERE W.FILENAME = #{fn}
+                            )
+
+    </select>
+
+    <select id="getAllListOrderByBrabo0" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+           LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+         ORDER BY B.B_CNT DESC , FILENAME ASC
+    </select>
+
+    <select id="getAllListOrderByBrabo1" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+           AND A.RES_PRICE = 0
+         ORDER BY B.B_CNT DESC , FILENAME ASC
+    </select>
+
+    <select id="getAllListOrderByBrabo2" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+           AND A.RES_PRICE > 0
+         ORDER BY B.B_CNT DESC , FILENAME ASC
+    </select>
+
+    <select id="getAllListOrderByTime0" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getAllListOrderByTime1" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+           AND A.RES_PRICE = 0
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getAllListOrderByTime2" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.OPEN_YN = 1
+           AND A.RES_PRICE > 0
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getListOrderByTime0" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.RES_KEY &lt; #{fn}
+           AND A.OPEN_YN    = 1
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getListOrderByTime1" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.RES_KEY &lt; #{fn}
+           AND A.OPEN_YN    = 1
+           AND A.RES_PRICE  = 0
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getListOrderByTime2" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE X.RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{usr}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND A.RES_KEY &lt; #{fn}
+           AND A.OPEN_YN    = 1
+           AND A.RES_PRICE  > 0
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="buyList" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN F_RES_USR D
+            ON A.RES_KEY = D.RES_KEY
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE D.USR_KEY = #{id}
+           AND D.RES_KEY NOT IN (
+                                SELECT RES_KEY
+                                  FROM PINTO_RES
+                                 WHERE RES_USR =#{id}
+                                )
+         ORDER BY D.CREATE_DATE
+    </select>
+
+    <select id="soldList" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN F_RES_USR D
+            ON A.RES_KEY = D.RES_KEY
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE D.RES_KEY IN (
+                            SELECT RES_KEY
+						      FROM PINTO_RES
+                             WHERE RES_USR = #{id}
+							)
+		  AND D.USR_KEY != #{id}
+         ORDER BY D.CREATE_DATE DESC
+    </select>
+
+    <select id="resSearch" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.OPEN_YN = 1
+           AND (
+                    A.RES_TITLE LIKE CONCAT('%',#{text},'%')
+                 OR A.RES_KEY IN(
+                                SELECT T1.RES_KEY
+                                  FROM F_RES_TAG T1 , PINTO_TAG T2
+                                 WHERE T1.TAG_KEY = T2.TAG_KEY
+                                   AND T2.TAG_VALUE LIKE CONCAT('%',#{text},'%')
+                            )
+                 OR A.RES_USR IN(
+                                SELECT T3.USR_KEY
+                                  FROM PINTO_USR T3
+                                 WHERE T3.USR_NAME LIKE CONCAT('%',#{text},'%')
+                             )
+        )
+         ORDER BY B.B_CNT DESC , FILENAME ASC
+    </select>
+
+    <select id="getResByResGroup" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE RES_CAT = #{cat}
+                       AND A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE A.RES_CAT = #{cat}
+           AND (A.RES_GROUP = #{group}
+            OR A.RES_KEY   = #{group})
+           AND A.OPEN_YN   = 1
+         ORDER BY FILENAME ASC
+    </select>
+
+    <select id="searchResByResGroup" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE (A.RES_GROUP = #{group}
+            OR A.RES_KEY  = #{group})
+           AND A.OPEN_YN   = 1
+         ORDER BY FILENAME DESC
+    </select>
+
+    <select id="getLikeResByResGroup" resultType="com.music961.pinto.model.Res">
+         SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+           JOIN (SELECT BRABO_RES AS RES_KEY
+                      , COUNT(*)  AS B_CNT
+                  FROM PINTO_BRABO
+                 GROUP BY BRABO_RES) B
+            ON IF(A.RES_GROUP=0,A.RES_KEY,A.RES_GROUP) = B.RES_KEY
+          JOIN ( SELECT BRABO_RES
+                      , BRABO_DATE
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON IF(A.RES_GROUP=0,A.RES_KEY,A.RES_GROUP) = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE (    A.RES_GROUP = #{group}
+                 OR A.RES_KEY  = #{group})
+         ORDER BY C.BRABO_DATE
+    </select>
+
+    <select id="getResUsrByResGroup" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+          LEFT JOIN (SELECT BRABO_RES AS RES_KEY
+                          , COUNT(*)  AS B_CNT
+                       FROM PINTO_BRABO
+                      GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          LEFT JOIN ( SELECT BRABO_RES
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN F_RES_USR D
+            ON A.RES_KEY = D.RES_KEY
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         WHERE D.USR_KEY = #{id}
+           AND (
+                A.RES_GROUP = #{group}
+                OR A.RES_KEY   = #{group}
+                )
+
+         ORDER BY D.CREATE_DATE DESC
+    </select>
+
+    <select id="getMyLikeList" resultType="com.music961.pinto.model.Res">
+        SELECT A.RES_KEY                                                         AS fileName
+             , A.RES_CAT                                                         AS CAT
+             , A.RES_USR                                                         AS USR
+             , A.RES_TITLE                                                       AS TITLE
+             , A.RES_DATE                                                        AS DATE
+             , A.RES_PRICE                                                       AS PRICE
+             , A.RES_PRICE_DIS                                                   AS priceDis
+             , A.RES_NOTE                                                        AS NOTE
+             , A.RES_VIEW                                                        AS VIEW
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY )            AS FILE
+             , CONCAT('http://www.pinto-smalto.com/file/',A.RES_KEY ,'_thumb')   AS FILETHUMBNAIL
+             , ''                                                                AS FILEORIGIN
+             , ''                                                                AS TAG
+             , IF(IFNULL(C.BRABO_RES,0)>0, 1, 0)                                 AS MYBRABO
+             , IFNULL(B.B_CNT,0)                                                 AS BRABOCNT
+             , A.RES_GROUP                                                       AS resGroup
+             , (
+                    SELECT COUNT(X.RES_KEY)
+                      FROM PINTO_RES X
+                     WHERE A.RES_KEY = X.RES_GROUP
+                 )                                                                AS resGroupCount
+             , E.USR_NAME                                                         AS usrName
+          FROM PINTO_RES A
+           JOIN (SELECT BRABO_RES AS RES_KEY
+                      , COUNT(*)  AS B_CNT
+                  FROM PINTO_BRABO
+                 GROUP BY BRABO_RES) B
+            ON A.RES_KEY = B.RES_KEY
+          JOIN ( SELECT BRABO_RES
+                      , BRABO_DATE
+                        FROM PINTO_BRABO
+                       WHERE BRABO_USR=#{id}) C
+            ON A.RES_KEY = C.BRABO_RES
+          LEFT JOIN PINTO_USR E
+            ON A.RES_USR = E.USR_KEY
+         ORDER BY C.BRABO_DATE
+    </select>
+
+    <select id="getGemPrice" resultType="hashmap">
+        SELECT A.USR_GEM                 AS GEM
+             , B.RES_PRICE               AS PRICE
+             , IFNULL(B.RES_PRICE_DIS,0) AS DIS
+          FROM PINTO_USR               A
+          JOIN (SELECT #{id} AS TEM
+                     , RES_PRICE
+                     , RES_PRICE_DIS
+                  FROM PINTO_RES
+                 WHERE RES_KEY = #{res})   B
+            ON A.USR_KEY = B.TEM
+         WHERE A.USR_KEY = #{id}
+    </select>
+
+    <insert id="saveFile" parameterType="com.music961.pinto.model.Res" useGeneratedKeys="true" keyProperty="fileName">
+        INSERT INTO PINTO_RES(
+               RES_CAT
+             , RES_USR
+             , RES_TITLE
+             , RES_PRICE
+             , RES_PRICE_DIS
+             , RES_NOTE
+             , RES_GROUP
+        )VALUES(
+               #{cat}
+             , #{usr}
+             , #{title}
+             , #{price}
+             , #{priceDis}
+             , #{note}
+             , IF(
+                    (SELECT A.RES_KEY
+                       FROM PINTO_RES A
+                      WHERE A.RES_KEY=#{resGroup}) , 0 , #{resGroup}
+                )
+        );
+        INSERT INTO F_RES_USR(
+            USR_KEY
+          , RES_KEY
+          , GEM
+        )
+        VALUES(
+            #{usr}
+          , LAST_INSERT_ID()
+          , #{price}
+        )
+    </insert>
+
+    <insert id="buyStep1">
+        INSERT INTO F_RES_USR(
+               USR_KEY
+             , RES_KEY
+             , GEM
+        ) SELECT #{id}
+               , RES_KEY
+               , RES_PRICE
+            FROM PINTO_RES
+           WHERE RES_GROUP = #{res}
+              OR RES_KEY   = #{res}
+    </insert>
+
+    <insert id="saveBrabo">
+        INSERT INTO PINTO_BRABO
+        VALUES(#{usrId},#{resId},now())
+    </insert>
+
+    <update id="buyStep2">
+        UPDATE PINTO_USR
+        SET USR_GEM = USR_GEM - #{price}
+        WHERE USR_KEY = #{id}
+    </update>
+
+    <delete id="deleteBrabo">
+        DELETE FROM PINTO_BRABO
+         WHERE BRABO_USR = #{usrId}
+           AND BRABO_RES = #{resId}
+    </delete>
+
+</mapper>

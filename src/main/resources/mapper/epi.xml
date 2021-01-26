@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.music961.pinto.repository.EpiRepository">
+
+    <select id="getMyEpi" resultType="com.music961.pinto.model.work.Epi">
+        SELECT T1.WORK_ID       AS    workId
+             , T1.EPI_ID        AS    epiId
+             , T1.TITLE         AS    title
+             , T1.FACE          AS    face
+             , T1.RELEASE_YN    AS    releaseYn
+             , T1.CREATE_DATE   AS    createDate
+             , T1.UPDATE_DATE   AS    updateDate
+          FROM PINTO_EPI T1
+         WHERE T1.WORK_ID = #{workId}
+         ORDER BY workId , epiId
+    </select>
+
+    <select id="getEpiList" resultType="com.music961.pinto.model.work.Epi">
+        SELECT T1.WORK_ID AS workId
+             , T1.EPI_ID  AS epiId
+             , T1.TITLE   AS title
+             , T1.FACE    AS face
+             , T1.RELEASE_YN    AS releaseYn
+             , T1.CREATE_DATE   AS createDate
+             , T1.UPDATE_DATE   AS updateDate
+          FROM PINTO_EPI T1
+         WHERE T1.WORK_ID = #{workId}
+           AND T1.RELEASE_YN = 1
+    </select>
+
+    <select id="getEpiListAll" resultType="com.music961.pinto.model.work.Epi">
+        SELECT T1.WORK_ID     AS workId
+             , T1.EPI_ID      AS epiId
+             , T1.TITLE       AS title
+             , T1.FACE        AS face
+             , T1.RELEASE_YN  AS releaseYn
+             , T1.CREATE_DATE AS    createDate
+             , T1.UPDATE_DATE   AS updateDate
+          FROM PINTO_EPI T1
+         WHERE T1.WORK_ID IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <insert id="saveEpi" parameterType="com.music961.pinto.model.work.Epi">
+        <selectKey keyProperty="epiId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.EPI_ID) FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId}),0)+1
+              FROM DUAL
+        </selectKey>
+        INSERT INTO PINTO_EPI(
+               WORK_ID
+             , EPI_ID
+             , TITLE
+             , FACE
+             , RELEASE_YN
+        )VALUES(
+               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+             , #{epiId}
+             , #{title}
+             , #{face}
+             , 0
+        );
+    </insert>
+
+    <update id="updateEpi" parameterType="com.music961.pinto.model.work.Epi">
+        UPDATE PINTO_EPI
+           SET TITLE       = #{title}
+             , UPDATE_DATE = NOW()
+             , RELEASE_YN  = IF((SELECT RELEASE_YN
+                                  FROM EPI_CONFIRM
+                                 WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+                                   AND EPI_ID  = #{epiId})>1,1,0)
+         WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+           AND EPI_ID  = #{epiId}
+           AND RELEASE_YN != 1 ;
+
+        UPDATE EPI_CONFIRM
+           SET CONFIRM_YN = 0
+             , UPDATE_DATE = NOW()
+         WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+           AND EPI_ID  = #{epiId};
+    </update>
+
+    <update id="updateRelease" parameterType="com.music961.pinto.model.work.Epi">
+        UPDATE PINTO_EPI
+           SET RELEASE_YN =IF((SELECT RELEASE_YN
+                                FROM PINTO_EPI
+                               WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+                                 AND EPI_ID  = #{epiId})=2,3,2)
+             , UPDATE_DATE = NOW()
+         WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+           AND EPI_ID  = #{epiId}
+           AND (
+                    RELEASE_YN = 2
+                 OR RELEASE_YN = 3
+                )
+    </update>
+
+    <update id="releasePlease" parameterType="com.music961.pinto.model.work.Epi">
+        UPDATE PINTO_EPI
+           SET RELEASE_YN = IF((SELECT RELEASE_YN
+                                FROM PINTO_EPI
+                               WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+                                 AND EPI_ID  = #{epiId})=3,2,1)
+             , UPDATE_DATE = NOW()
+         WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId})
+           AND EPI_ID  = #{epiId}
+           AND (
+                    RELEASE_YN = 0
+                 OR RELEASE_YN = 3
+                )
+        <selectKey keyProperty="releaseYn" resultType="Int" order="AFTER">
+            SELECT RELEASE_YN AS releaseYn
+              FROM PINTO_EPI
+             WHERE WORK_ID = #{workId}
+               AND EPI_ID   = #{epiId}
+        </selectKey>
+    </update>
+
+    <insert id="saveConfirm" parameterType="com.music961.pinto.model.work.Epi">
+        <selectKey keyProperty="epiId" resultType="long" order="BEFORE">
+            SELECT IFNULL((SELECT MAX(T2.EPI_ID) FROM PINTO_EPI T2 WHERE T2.WORK_ID=#{workId}),0)+1
+              FROM DUAL
+        </selectKey>
+        INSERT INTO EPI_CONFIRM(
+               WORK_ID
+             , EPI_ID
+        )VALUES(
+               IFNULL((SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY=#{usrId}),'NOTALLOW')
+             , #{epiId}
+        ) ON DUPLICATE KEY UPDATE UPDATE_DATE=UPDATE_DATE
+    </insert>
+
+    <delete id="deleteEpiCascade" parameterType="com.music961.pinto.model.work.Epi">
+        DELETE
+          FROM PINTO_EPI
+         WHERE WORK_ID = (SELECT T1.ID FROM PINTO_WORK T1 WHERE T1.ID=#{workId} AND T1.USR_KEY = #{usrId})
+           AND EPI_ID  = #{epiId}
+           AND RELEASE_YN = 0;
+    </delete>
+
+</mapper>
